@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+    <DefaultItemExcludes>$(DefaultItemExcludes);App\**</DefaultItemExcludes>
+    <AssemblyName>Beam</AssemblyName>
+    <RootNamespace>Beam</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\Beam.ico</ApplicationIcon>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <Version>1.0.0</Version>
+    <Product>Beam</Product>
+    <AssemblyTitle>Beam</AssemblyTitle>
+    <Description>Beam shares a local Angular project through a public Cloudflare link</Description>
+    <Copyright>© 2026 Aly Abdullah</Copyright>
+    <Authors>Aly Abdullah</Authors>
+    <RepositoryUrl>https://github.com/aly-abdullah/beam</RepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="QRCoder" Version="1.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\Beam.ico" />
+    <Resource Include="Assets\Logo.png" />
+  </ItemGroup>
+
+</Project>

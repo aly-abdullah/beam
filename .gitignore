@@ -1,0 +1,11 @@
+bin/
+obj/
+App/
+publish/
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.zip
+CLAUDE.md
