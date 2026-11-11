@@ -9,50 +9,50 @@
             <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
             <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
-            <Color x:Key="BgColor">#0A0B14</Color>
+            <Color x:Key="BgColor">#0B0A0F</Color>
             <SolidColorBrush x:Key="Bg" Color="{StaticResource BgColor}"/>
-            <SolidColorBrush x:Key="Sidebar" Color="#0D0E1B"/>
-            <SolidColorBrush x:Key="Surface" Color="#121325"/>
-            <SolidColorBrush x:Key="SurfaceHi" Color="#191A31"/>
-            <SolidColorBrush x:Key="SurfaceHover" Color="#20223D"/>
-            <SolidColorBrush x:Key="Well" Color="#08090F"/>
-            <SolidColorBrush x:Key="Stroke" Color="#24264A"/>
-            <SolidColorBrush x:Key="StrokeSoft" Color="#1A1C36"/>
-            <SolidColorBrush x:Key="Text" Color="#F4F3FA"/>
-            <SolidColorBrush x:Key="Muted" Color="#A3A2C2"/>
-            <SolidColorBrush x:Key="Faint" Color="#62618A"/>
-            <SolidColorBrush x:Key="Accent" Color="#FF8C42"/>
-            <SolidColorBrush x:Key="AccentSoft" Color="#26FF8C42"/>
-            <SolidColorBrush x:Key="Amber" Color="#FDC45C"/>
-            <SolidColorBrush x:Key="Success" Color="#34D399"/>
-            <SolidColorBrush x:Key="SuccessSoft" Color="#1F34D399"/>
+            <SolidColorBrush x:Key="Sidebar" Color="#0F0E14"/>
+            <SolidColorBrush x:Key="Surface" Color="#15141C"/>
+            <SolidColorBrush x:Key="SurfaceHi" Color="#1E1D27"/>
+            <SolidColorBrush x:Key="SurfaceHover" Color="#262530"/>
+            <SolidColorBrush x:Key="Well" Color="#09080C"/>
+            <SolidColorBrush x:Key="Stroke" Color="#2C2A36"/>
+            <SolidColorBrush x:Key="StrokeSoft" Color="#211F2A"/>
+            <SolidColorBrush x:Key="Text" Color="#F6F4F1"/>
+            <SolidColorBrush x:Key="Muted" Color="#A9A5B0"/>
+            <SolidColorBrush x:Key="Faint" Color="#6F6B78"/>
+            <SolidColorBrush x:Key="Accent" Color="#FF8A45"/>
+            <SolidColorBrush x:Key="AccentSoft" Color="#24FF8A45"/>
+            <SolidColorBrush x:Key="Amber" Color="#FFC05C"/>
+            <SolidColorBrush x:Key="Success" Color="#3DD68C"/>
+            <SolidColorBrush x:Key="SuccessSoft" Color="#1F3DD68C"/>
             <SolidColorBrush x:Key="Danger" Color="#FB7185"/>
             <SolidColorBrush x:Key="DangerSoft" Color="#22FB7185"/>
             <SolidColorBrush x:Key="Indigo" Color="#7C6CF6"/>
-            <SolidColorBrush x:Key="OnAccent" Color="#1B0E06"/>
+            <SolidColorBrush x:Key="OnAccent" Color="#17133A"/>
 
             <LinearGradientBrush x:Key="AccentGradient" StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#FF7A3D" Offset="0"/>
-                <GradientStop Color="#FDC45C" Offset="1"/>
+                <GradientStop Color="#FFC05C" Offset="0"/>
+                <GradientStop Color="#FF6A3D" Offset="1"/>
             </LinearGradientBrush>
 
             <LinearGradientBrush x:Key="HeroGradient" StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#1A1640" Offset="0"/>
-                <GradientStop Color="#121325" Offset="0.55"/>
-                <GradientStop Color="#1B1426" Offset="1"/>
+                <GradientStop Color="#1C1A23" Offset="0"/>
+                <GradientStop Color="#15141C" Offset="0.6"/>
+                <GradientStop Color="#191720" Offset="1"/>
             </LinearGradientBrush>
 
             <LinearGradientBrush x:Key="LiveGradient" StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#0F2A26" Offset="0"/>
-                <GradientStop Color="#121325" Offset="0.6"/>
-                <GradientStop Color="#1A1640" Offset="1"/>
+                <GradientStop Color="#14211C" Offset="0"/>
+                <GradientStop Color="#15141C" Offset="0.6"/>
+                <GradientStop Color="#191720" Offset="1"/>
             </LinearGradientBrush>
 
             <Style x:Key="Card" TargetType="Border">
                 <Setter Property="Background" Value="{StaticResource Surface}"/>
                 <Setter Property="BorderBrush" Value="{StaticResource StrokeSoft}"/>
                 <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="CornerRadius" Value="18"/>
+                <Setter Property="CornerRadius" Value="16"/>
                 <Setter Property="Padding" Value="22"/>
                 <Setter Property="Margin" Value="0,0,0,16"/>
             </Style>
@@ -87,14 +87,28 @@
                                 <Border x:Name="Shell" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                                         BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="11" SnapsToDevicePixels="True"/>
                                 <Border x:Name="Hover" Background="#FFFFFF" Opacity="0" CornerRadius="11"/>
+                                <Border x:Name="Press" Background="#000000" Opacity="0" CornerRadius="11"/>
                                 <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Hover" Property="Opacity" Value="0.06"/>
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="Hover" Storyboard.TargetProperty="Opacity" To="0.08" Duration="0:0:0.14"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                    <Trigger.ExitActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="Hover" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.2"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.ExitActions>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="Hover" Property="Opacity" Value="0.12"/>
+                                    <Setter TargetName="Press" Property="Opacity" Value="0.14"/>
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Opacity" Value="0.4"/>
@@ -111,16 +125,21 @@
                 <Setter Property="Foreground" Value="{StaticResource OnAccent}"/>
                 <Setter Property="FontSize" Value="14"/>
                 <Setter Property="FontWeight" Value="Bold"/>
-                <Setter Property="Padding" Value="22,13"/>
+                <Setter Property="Padding" Value="24,13"/>
+                <Setter Property="Effect">
+                    <Setter.Value>
+                        <DropShadowEffect Color="#FF8A45" BlurRadius="26" ShadowDepth="0" Opacity="0.32"/>
+                    </Setter.Value>
+                </Setter>
             </Style>
 
             <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource ButtonBase}">
                 <Setter Property="Background" Value="{StaticResource DangerSoft}"/>
                 <Setter Property="BorderBrush" Value="#55FB7185"/>
                 <Setter Property="Foreground" Value="{StaticResource Danger}"/>
-                <Setter Property="FontSize" Value="14"/>
-                <Setter Property="FontWeight" Value="Bold"/>
-                <Setter Property="Padding" Value="22,13"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Padding" Value="16,9"/>
             </Style>
 
             <Style x:Key="SoftButton" TargetType="Button" BasedOn="{StaticResource ButtonBase}">
@@ -206,7 +225,7 @@
 
             <Style x:Key="LogBox" TargetType="TextBox">
                 <Setter Property="Background" Value="Transparent"/>
-                <Setter Property="Foreground" Value="#B9B8D6"/>
+                <Setter Property="Foreground" Value="#B8B4BF"/>
                 <Setter Property="BorderThickness" Value="0"/>
                 <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
                 <Setter Property="FontSize" Value="11.5"/>
@@ -235,7 +254,7 @@
                                     <Thumb>
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="Thumb">
-                                                <Border Background="#2E3058" CornerRadius="3"/>
+                                                <Border Background="#34323E" CornerRadius="3"/>
                                             </ControlTemplate>
                                         </Thumb.Template>
                                     </Thumb>

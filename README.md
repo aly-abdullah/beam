@@ -57,13 +57,14 @@ Pressing **Stop** ends both processes.
 ## Requirements
 
 - Windows 10 or 11 (x64)
-- [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [Node.js](https://nodejs.org) and an Angular CLI project (a folder with `angular.json`)
+
+The installer is self-contained, so you do not need to install .NET.
 
 ## Install
 
-1. Download `Beam-win-x64.zip` from the [latest release](https://github.com/aly-abdullah/beam/releases/latest).
-2. Extract it anywhere and run `Beam.exe`.
+1. Download `Beam-Setup-1.1.0.exe` from the [latest release](https://github.com/aly-abdullah/beam/releases/latest).
+2. Run it. Beam installs for your user only, so there is no admin prompt, and the setup is available in English and Arabic.
 
 Windows SmartScreen may warn about an unsigned app the first time. Choose **More info**, then **Run anyway**.
 

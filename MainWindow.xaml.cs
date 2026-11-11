@@ -57,14 +57,14 @@ public partial class MainWindow : Window
         "frontend", "front-end", "front", "web", "client", "app", "ui", "src", "site", "website", "portal", "angular",
     };
 
-    static readonly (string From, string To)[] TilePalette =
+    static readonly Color[] TilePalette =
     [
-        ("#FF7A3D", "#FDC45C"),
-        ("#7C6CF6", "#B79CFF"),
-        ("#22C1A6", "#7BE495"),
-        ("#F0568C", "#FF9AA2"),
-        ("#3B82F6", "#7DD3FC"),
-        ("#E8A33D", "#F7D774"),
+        Color.FromRgb(0xFF, 0x9A, 0x55),
+        Color.FromRgb(0xA8, 0x94, 0xFF),
+        Color.FromRgb(0x4F, 0xD8, 0xB0),
+        Color.FromRgb(0xFF, 0x86, 0xA8),
+        Color.FromRgb(0x6F, 0xB7, 0xFF),
+        Color.FromRgb(0xF2, 0xC9, 0x5C),
     ];
 
     static string Label(string folder, string? name)
@@ -83,6 +83,7 @@ public partial class MainWindow : Window
 
     readonly Settings _settings = Settings.Load();
     readonly Dictionary<Step, StepCard> _cards = [];
+    readonly List<Rectangle> _links = [];
     readonly List<ProjectRun> _runs = [];
     readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     readonly Forms.NotifyIcon _tray = new();
@@ -102,6 +103,7 @@ public partial class MainWindow : Window
         BuildSteps();
         _clock.Tick += (_, _) => UpdateElapsed();
         StateChanged += (_, _) => OnWindowState();
+        HeroCard.SizeChanged += (_, e) => HeroLayer.Clip = new RectangleGeometry(new Rect(e.NewSize), 19, 19);
         SetupTray();
 
         var saved = _settings.OpenTabs ?? _settings.Recent.Take(1).ToList();
@@ -140,14 +142,29 @@ public partial class MainWindow : Window
     void BuildSteps()
     {
         var steps = Enum.GetValues<Step>();
-        foreach (var _ in steps)
-            StepsGrid.ColumnDefinitions.Add(new ColumnDefinition());
         for (var i = 0; i < steps.Length; i++)
         {
-            var card = new StepCard(steps[i], i == 0, i == steps.Length - 1);
+            StepsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var card = new StepCard(steps[i]);
             _cards[steps[i]] = card;
-            Grid.SetColumn(card.Root, i);
+            Grid.SetColumn(card.Root, i * 2);
             StepsGrid.Children.Add(card.Root);
+
+            if (i == steps.Length - 1)
+                break;
+
+            StepsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            var link = new Rectangle
+            {
+                Height = 1.5,
+                MinWidth = 12,
+                Margin = new Thickness(12, 0, 12, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Fill = Res("Stroke"),
+            };
+            Grid.SetColumn(link, i * 2 + 1);
+            StepsGrid.Children.Add(link);
+            _links.Add(link);
         }
     }
 
@@ -155,11 +172,8 @@ public partial class MainWindow : Window
     {
         _cards[step].Set(state, detail);
         var steps = Enum.GetValues<Step>();
-        for (var i = 0; i < steps.Length; i++)
-        {
-            var done = _cards[steps[i]].State == StepState.Done;
-            _cards[steps[i]].SetLinks(i > 0 && _cards[steps[i - 1]].State == StepState.Done, done);
-        }
+        for (var i = 0; i < _links.Count; i++)
+            _links[i].Fill = Res(_cards[steps[i]].State == StepState.Done ? "Success" : "Stroke");
     }
 
     void SetupTray()
@@ -278,6 +292,8 @@ public partial class MainWindow : Window
 
     void ShowRun(ProjectRun run)
     {
+        if (_current != run && IsLoaded)
+            PlayContentTransition();
         _current = run;
         foreach (var (step, value) in run.Steps)
             SetStep(step, value.State, value.Detail);
@@ -288,13 +304,20 @@ public partial class MainWindow : Window
         Refresh();
     }
 
+    void PlayContentTransition()
+    {
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+        var duration = TimeSpan.FromMilliseconds(220);
+        ProjectView.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, duration) { EasingFunction = ease });
+        ContentShift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(8, 0, duration) { EasingFunction = ease });
+    }
+
     void Refresh()
     {
         var loc = Loc.I;
         var run = _current;
         FlowDirection = loc.Arabic ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
 
-        BrandSub.Text = loc["BrandSub"];
         ProjectsLabel.Text = loc["Projects"].ToUpperInvariant();
         RecentLabel.Text = loc["Recent"].ToUpperInvariant();
         LangText.Text = loc.Arabic ? "English" : "العربية";
@@ -329,7 +352,7 @@ public partial class MainWindow : Window
             ProjectPath.ToolTip = ProjectPath.Text;
             ChangeButton.IsEnabled = !run.Busy;
             BuildChips(run);
-            UpdateMainButton(run);
+            UpdateActions(run);
             UpdateHero(run);
         }
 
@@ -358,19 +381,20 @@ public partial class MainWindow : Window
         var selected = run == _current;
         var title = run.Title;
 
+        var hue = TileColor(run.Info?.Root ?? run.Folder ?? title);
         var tile = new Border
         {
             Width = 34,
             Height = 34,
             CornerRadius = new CornerRadius(10),
-            Background = TileBrush(run.Info?.Root ?? run.Folder ?? title),
+            Background = new SolidColorBrush(Color.FromArgb(38, hue.R, hue.G, hue.B)),
             Child = new TextBlock
             {
                 Text = run.Folder is null ? "+" : title[..1].ToUpperInvariant(),
                 FontFamily = (FontFamily)FindResource("DisplayFont"),
                 FontSize = 15,
-                FontWeight = FontWeights.Bold,
-                Foreground = Brushes.White,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(hue),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
             },
@@ -430,12 +454,26 @@ public partial class MainWindow : Window
         Grid.SetColumn(trailing, 2);
         grid.Children.Add(trailing);
 
+        if (selected)
+        {
+            var bar = new Border
+            {
+                Width = 3,
+                Height = 18,
+                CornerRadius = new CornerRadius(1.5),
+                Background = Res("AccentGradient"),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(-9, 0, 0, 0),
+            };
+            Grid.SetColumnSpan(bar, 3);
+            grid.Children.Add(bar);
+        }
+
         var idleBackground = selected ? Res("SurfaceHi") : Brushes.Transparent;
         var item = new Border
         {
             Background = idleBackground,
-            BorderBrush = selected ? Res("Stroke") : Brushes.Transparent,
-            BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(12),
             Padding = new Thickness(9, 8, 6, 8),
             Margin = new Thickness(0, 0, 0, 4),
@@ -593,19 +631,14 @@ public partial class MainWindow : Window
         };
     }
 
-    void UpdateMainButton(ProjectRun run)
+    void UpdateActions(ProjectRun run)
     {
         var loc = Loc.I;
-        var stop = run.Phase is Phase.Live or Phase.Starting or Phase.Stopping;
-        MainButton.Style = (Style)FindResource(stop ? "DangerButton" : "PrimaryButton");
-        MainIcon.Text = stop ? "" : "";
-        MainText.Text = run.Phase switch
-        {
-            Phase.Starting or Phase.Live => loc["Stop"],
-            Phase.Stopping => loc["Stopping"],
-            _ => loc["GoLive"],
-        };
-        MainButton.IsEnabled = run.Phase != Phase.Stopping && (run.Busy || run.Info is not null);
+        GoLiveText.Text = loc["GoLive"];
+        GoLiveButton.Visibility = run.Phase == Phase.Idle && run.Info is not null ? Visibility.Visible : Visibility.Collapsed;
+        StopButton.Visibility = run.Busy ? Visibility.Visible : Visibility.Collapsed;
+        StopButton.IsEnabled = run.Phase != Phase.Stopping;
+        StopText.Text = run.Phase == Phase.Stopping ? loc["Stopping"] : loc["Stop"];
     }
 
     void UpdateHero(ProjectRun run)
@@ -618,45 +651,44 @@ public partial class MainWindow : Window
         if (live)
         {
             HeroCard.Background = Res("LiveGradient");
-            HeroCard.BorderBrush = new SolidColorBrush(Color.FromArgb(70, 0x34, 0xD3, 0x99));
+            HeroCard.BorderBrush = new SolidColorBrush(Color.FromArgb(70, 0x3D, 0xD6, 0x8C));
             if (LiveDotHost.Children.Count == 0)
                 LiveDotHost.Children.Add(PulseDot(Res("Success"), true));
             if (_shownUrl != run.Url)
                 ShowLink(run.Url!);
             SetProgress(false);
+            HeroBeam.Opacity = 1;
             return;
         }
 
         _shownUrl = null;
         HeroCard.Background = run.Info is null ? Res("Surface") : Res("HeroGradient");
         HeroCard.BorderBrush = Res("Stroke");
-        HeroIcon.Foreground = Res(run.Info is null ? "Danger" : "Accent");
+        HeroTitle.Foreground = Res(run.Info is null ? "Danger" : "Text");
 
         if (run.Info is null)
         {
-            HeroIcon.Text = "";
             HeroTitle.Text = loc["NotAngular"];
             HeroBody.Text = loc["PickPrompt"];
         }
         else if (run.Phase == Phase.Starting)
         {
-            HeroIcon.Text = "";
             HeroTitle.Text = loc["HeroStartingTitle"];
             HeroBody.Text = loc["HeroStartingBody"];
         }
         else if (run.Phase == Phase.Stopping)
         {
-            HeroIcon.Text = "";
             HeroTitle.Text = loc["Stopping"];
             HeroBody.Text = "";
         }
         else
         {
-            HeroIcon.Text = "";
             HeroTitle.Text = loc["HeroIdleTitle"];
             HeroBody.Text = loc["HeroIdleBody"];
         }
         SetProgress(run.Phase is Phase.Starting or Phase.Stopping);
+        if (!_progressRunning)
+            HeroBeam.Opacity = run.Info is null ? 0 : 0.5;
     }
 
     void SetProgress(bool on)
@@ -668,6 +700,14 @@ public partial class MainWindow : Window
         ProgressShift.BeginAnimation(TranslateTransform.XProperty, on
             ? new DoubleAnimation(-140, 440, TimeSpan.FromSeconds(1.3))
             {
+                RepeatBehavior = RepeatBehavior.Forever,
+                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut },
+            }
+            : null);
+        HeroBeam.BeginAnimation(OpacityProperty, on
+            ? new DoubleAnimation(0.35, 1, TimeSpan.FromSeconds(0.9))
+            {
+                AutoReverse = true,
                 RepeatBehavior = RepeatBehavior.Forever,
                 EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut },
             }
@@ -728,17 +768,12 @@ public partial class MainWindow : Window
         return host;
     }
 
-    static Brush TileBrush(string key)
+    static Color TileColor(string key)
     {
         var hash = 2166136261u;
         foreach (var c in key.ToLowerInvariant())
             hash = (hash ^ c) * 16777619u;
-        var (from, to) = TilePalette[hash % (uint)TilePalette.Length];
-        return new LinearGradientBrush(
-            (Color)ColorConverter.ConvertFromString(from),
-            (Color)ColorConverter.ConvertFromString(to),
-            new Point(0, 0),
-            new Point(1, 1));
+        return TilePalette[hash % (uint)TilePalette.Length];
     }
 
     Brush Res(string key) => (Brush)FindResource(key);
@@ -1052,25 +1087,23 @@ public partial class MainWindow : Window
     {
         static readonly Dictionary<Step, string> Glyphs = new()
         {
-            [Step.Cloudflared] = "",
-            [Step.Hosts] = "",
-            [Step.Server] = "",
-            [Step.Tunnel] = "",
+            [Step.Cloudflared] = "\uE753",
+            [Step.Hosts] = "\uEA18",
+            [Step.Server] = "\uE7F4",
+            [Step.Tunnel] = "\uE774",
         };
 
         readonly Step _step;
-        readonly Rectangle _left = new() { Height = 2, RadiusX = 1, RadiusY = 1, VerticalAlignment = VerticalAlignment.Center };
-        readonly Rectangle _right = new() { Height = 2, RadiusX = 1, RadiusY = 1, VerticalAlignment = VerticalAlignment.Center };
-        readonly Border _circle = new() { Width = 42, Height = 42, CornerRadius = new CornerRadius(21), BorderThickness = new Thickness(1) };
-        readonly TextBlock _glyph = new() { FontSize = 15, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        readonly Border _circle = new() { Width = 30, Height = 30, CornerRadius = new CornerRadius(15), BorderThickness = new Thickness(1) };
+        readonly TextBlock _glyph = new() { FontSize = 12, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         readonly System.Windows.Shapes.Path _spinner;
-        readonly TextBlock _title = new() { FontSize = 13, FontWeight = FontWeights.SemiBold, TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(6, 12, 6, 0) };
-        readonly TextBlock _detail = new() { FontSize = 11.5, TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(8, 4, 8, 0) };
+        readonly TextBlock _title = new() { FontSize = 12.5, FontWeight = FontWeights.SemiBold };
+        readonly TextBlock _detail = new() { FontSize = 11, MaxWidth = 124, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 1, 0, 0) };
 
-        public Grid Root { get; } = new();
+        public StackPanel Root { get; } = new() { Orientation = Orientation.Horizontal };
         public StepState State { get; private set; } = StepState.Pending;
 
-        public StepCard(Step step, bool first, bool last)
+        public StepCard(Step step)
         {
             _step = step;
             var app = Application.Current;
@@ -1078,72 +1111,48 @@ public partial class MainWindow : Window
             _glyph.Text = Glyphs[step];
             _spinner = new System.Windows.Shapes.Path
             {
-                Data = Geometry.Parse("M 21,1 A 20,20 0 0 1 41,21"),
-                StrokeThickness = 2.5,
+                Data = Geometry.Parse("M 15,1 A 14,14 0 0 1 29,15"),
+                StrokeThickness = 2,
                 Stroke = (Brush)app.FindResource("Accent"),
                 StrokeStartLineCap = PenLineCap.Round,
                 StrokeEndLineCap = PenLineCap.Round,
-                Width = 42,
-                Height = 42,
+                Width = 30,
+                Height = 30,
                 RenderTransformOrigin = new Point(0.5, 0.5),
                 RenderTransform = new RotateTransform(),
             };
 
-            var track = new Grid { Height = 42 };
-            track.ColumnDefinitions.Add(new ColumnDefinition());
-            track.ColumnDefinitions.Add(new ColumnDefinition());
-            _left.Margin = new Thickness(0, 0, 21, 0);
-            _right.Margin = new Thickness(21, 0, 0, 0);
-            _left.Visibility = first ? Visibility.Hidden : Visibility.Visible;
-            _right.Visibility = last ? Visibility.Hidden : Visibility.Visible;
-            track.Children.Add(_left);
-            Grid.SetColumn(_right, 1);
-            track.Children.Add(_right);
-
-            var icon = new Grid { Width = 42, Height = 42 };
+            var icon = new Grid { Width = 30, Height = 30, VerticalAlignment = VerticalAlignment.Center };
             _circle.Child = _glyph;
             icon.Children.Add(_circle);
             icon.Children.Add(_spinner);
-            Grid.SetColumnSpan(icon, 2);
-            track.Children.Add(icon);
 
-            Root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            Root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            Root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            Root.Children.Add(track);
-            Grid.SetRow(_title, 1);
-            Root.Children.Add(_title);
-            Grid.SetRow(_detail, 2);
-            Root.Children.Add(_detail);
+            var texts = new StackPanel { Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+            texts.Children.Add(_title);
+            texts.Children.Add(_detail);
+
+            Root.Children.Add(icon);
+            Root.Children.Add(texts);
 
             Translate();
             Set(StepState.Pending, "");
-            SetLinks(false, false);
         }
 
         public void Translate() => _title.Text = Loc.I["Step" + _step];
 
-        public void SetLinks(bool leftDone, bool rightDone)
-        {
-            var app = Application.Current;
-            _left.Fill = (Brush)app.FindResource(leftDone ? "Success" : "Stroke");
-            _right.Fill = (Brush)app.FindResource(rightDone ? "Success" : "Stroke");
-            _left.Opacity = leftDone ? 0.6 : 1;
-            _right.Opacity = rightDone ? 0.6 : 1;
-        }
-
         public void Set(StepState state, string detail)
         {
             State = state;
-            _detail.Text = string.IsNullOrEmpty(detail) ? " " : detail;
+            _detail.Text = detail;
+            _detail.Visibility = string.IsNullOrEmpty(detail) ? Visibility.Collapsed : Visibility.Visible;
             _detail.ToolTip = string.IsNullOrEmpty(detail) ? null : detail;
             var app = Application.Current;
             Brush R(string key) => (Brush)app.FindResource(key);
 
             _glyph.Text = state switch
             {
-                StepState.Done => "",
-                StepState.Failed => "",
+                StepState.Done => "\uE73E",
+                StepState.Failed => "\uE711",
                 _ => Glyphs[_step],
             };
             _circle.Background = state switch
@@ -1155,7 +1164,7 @@ public partial class MainWindow : Window
             };
             _circle.BorderBrush = state switch
             {
-                StepState.Done => new SolidColorBrush(Color.FromArgb(90, 0x34, 0xD3, 0x99)),
+                StepState.Done => new SolidColorBrush(Color.FromArgb(90, 0x3D, 0xD6, 0x8C)),
                 StepState.Failed => new SolidColorBrush(Color.FromArgb(90, 0xFB, 0x71, 0x85)),
                 StepState.Active => Brushes.Transparent,
                 _ => R("Stroke"),

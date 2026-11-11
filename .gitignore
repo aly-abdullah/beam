@@ -9,3 +9,4 @@ publish/
 *.suo
 *.zip
 CLAUDE.md
+dist/

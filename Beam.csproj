@@ -8,14 +8,14 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
-    <DefaultItemExcludes>$(DefaultItemExcludes);App\**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);App\**;dist\**;installer\**</DefaultItemExcludes>
     <AssemblyName>Beam</AssemblyName>
     <RootNamespace>Beam</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\Beam.ico</ApplicationIcon>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Product>Beam</Product>
     <AssemblyTitle>Beam</AssemblyTitle>
     <Description>Beam shares a local Angular project through a public Cloudflare link</Description>
@@ -25,10 +25,22 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <DebugType>none</DebugType>
+    <InnoCompiler>$(LOCALAPPDATA)\Programs\Inno Setup 6\ISCC.exe</InnoCompiler>
+    <InnoCompiler Condition="!Exists('$(InnoCompiler)')">$(MSBuildProgramFiles32)\Inno Setup 6\ISCC.exe</InnoCompiler>
   </PropertyGroup>
+
+  <Target Name="BuildInstaller" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release'">
+    <Warning Condition="!Exists('$(InnoCompiler)')" Text="Inno Setup 6 was not found, so the installer was skipped. Install it with: winget install JRSoftware.InnoSetup" />
+    <PropertyGroup>
+      <InstallerSource>$([System.IO.Path]::GetFullPath('$(PublishDir)').TrimEnd('\'))</InstallerSource>
+    </PropertyGroup>
+    <Exec Condition="Exists('$(InnoCompiler)')" Command="&quot;$(InnoCompiler)&quot; /Q /DAppVersion=$(Version) &quot;/DSourceDir=$(InstallerSource)&quot; &quot;$(MSBuildProjectDirectory)\installer\Beam.iss&quot;" />
+  </Target>
 
   <ItemGroup>
     <Using Remove="System.Windows.Forms" />
