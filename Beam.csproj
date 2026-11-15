@@ -30,17 +30,8 @@
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <DebugType>none</DebugType>
-    <InnoCompiler>$(LOCALAPPDATA)\Programs\Inno Setup 6\ISCC.exe</InnoCompiler>
-    <InnoCompiler Condition="!Exists('$(InnoCompiler)')">$(MSBuildProgramFiles32)\Inno Setup 6\ISCC.exe</InnoCompiler>
   </PropertyGroup>
 
-  <Target Name="BuildInstaller" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release'">
-    <Warning Condition="!Exists('$(InnoCompiler)')" Text="Inno Setup 6 was not found, so the installer was skipped. Install it with: winget install JRSoftware.InnoSetup" />
-    <PropertyGroup>
-      <InstallerSource>$([System.IO.Path]::GetFullPath('$(PublishDir)').TrimEnd('\'))</InstallerSource>
-    </PropertyGroup>
-    <Exec Condition="Exists('$(InnoCompiler)')" Command="&quot;$(InnoCompiler)&quot; /Q /DAppVersion=$(Version) &quot;/DSourceDir=$(InstallerSource)&quot; &quot;$(MSBuildProjectDirectory)\installer\Beam.iss&quot;" />
-  </Target>
 
   <ItemGroup>
     <Using Remove="System.Windows.Forms" />
@@ -55,5 +46,50 @@
     <Resource Include="Assets\Beam.ico" />
     <Resource Include="Assets\Logo.png" />
   </ItemGroup>
+
+  <!-- ==================================================================
+       Installer
+       Every build, Debug and Release, also produces the installer:
+           bin\Debug\Installer\Beam-Setup-<Version>.exe
+           bin\Release\Installer\Beam-Setup-<Version>.exe
+       The Debug installer installs the Debug build (for testing).
+
+       Needs Inno Setup 6:  winget install JRSoftware.InnoSetup
+       Without it the build still succeeds and shows a warning.
+       Skip it for one build:  dotnet build -c Release -p:BuildInstaller=false
+       ================================================================== -->
+  <PropertyGroup>
+    <BuildInstaller Condition="'$(BuildInstaller)' == ''">true</BuildInstaller>
+    <InstallerName>Beam-Setup-$(Version)</InstallerName>
+    <InstallerScript>$(MSBuildProjectDirectory)\installer\Beam.iss</InstallerScript>
+    <InstallerOutputDir>$(MSBuildProjectDirectory)\bin\$(Configuration)\Installer</InstallerOutputDir>
+    <InstallerPayloadDir>$(MSBuildProjectDirectory)\obj\$(Configuration)\InstallerPayload</InstallerPayloadDir>
+    <InnoCompiler Condition="'$(InnoCompiler)' == '' and Exists('$(LOCALAPPDATA)\Programs\Inno Setup 6\ISCC.exe')">$(LOCALAPPDATA)\Programs\Inno Setup 6\ISCC.exe</InnoCompiler>
+    <InnoCompiler Condition="'$(InnoCompiler)' == '' and Exists('$(MSBuildProgramFiles32)\Inno Setup 6\ISCC.exe')">$(MSBuildProgramFiles32)\Inno Setup 6\ISCC.exe</InnoCompiler>
+    <InnoCompiler Condition="'$(InnoCompiler)' == '' and Exists('$(ProgramW6432)\Inno Setup 6\ISCC.exe')">$(ProgramW6432)\Inno Setup 6\ISCC.exe</InnoCompiler>
+  </PropertyGroup>
+
+  <!-- Runs after a normal Debug or Release build (Visual Studio or dotnet build), but not inside
+       "dotnet publish" and not inside its own publish step below. Inputs/Outputs make it
+       incremental: when the code and the script did not change, the installer is not rebuilt. -->
+  <Target Name="BuildInstaller" AfterTargets="Build"
+          Condition="'$(BuildInstaller)' == 'true' and '$(_IsPublishing)' != 'true' and '$(InstallerPayloadBuild)' != 'true'"
+          Inputs="@(IntermediateAssembly);$(InstallerScript);$(MSBuildProjectFullPath)"
+          Outputs="$(InstallerOutputDir)\$(InstallerName).exe">
+    <Warning Condition="'$(InnoCompiler)' == ''"
+             Text="Inno Setup 6 was not found, so the installer was skipped. Install it with: winget install JRSoftware.InnoSetup" />
+
+    <!-- 1. Publish the app into a clean staging folder under obj -->
+    <RemoveDir Condition="'$(InnoCompiler)' != ''" Directories="$(InstallerPayloadDir)" />
+    <MSBuild Condition="'$(InnoCompiler)' != ''" Projects="$(MSBuildProjectFullPath)" Targets="Publish"
+             Properties="Configuration=$(Configuration);PublishDir=$(InstallerPayloadDir)\;InstallerPayloadBuild=true" />
+
+    <!-- 2. Compile the Inno Setup script into bin\$(Configuration)\Installer -->
+    <MakeDir Condition="'$(InnoCompiler)' != ''" Directories="$(InstallerOutputDir)" />
+    <Exec Condition="'$(InnoCompiler)' != ''"
+          Command="&quot;$(InnoCompiler)&quot; /Qp &quot;/DAppVersion=$(Version)&quot; &quot;/DSourceDir=$(InstallerPayloadDir)&quot; &quot;/O$(InstallerOutputDir)&quot; &quot;/F$(InstallerName)&quot; &quot;$(InstallerScript)&quot;" />
+    <Message Condition="'$(InnoCompiler)' != ''" Importance="high"
+             Text="$(MSBuildProjectName) -&gt; $(InstallerOutputDir)\$(InstallerName).exe" />
+  </Target>
 
 </Project>

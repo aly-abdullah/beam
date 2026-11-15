@@ -1,8 +1,13 @@
+; Beam installer - Inno Setup 6 (https://jrsoftware.org/isinfo.php)
+; Built automatically by every build (Debug and Release) of Beam.csproj into
+; bin\<Configuration>\Installer\Beam-Setup-<version>.exe. The build passes AppVersion
+; (from <Version> in the csproj) and SourceDir (the published app).
+
 #ifndef AppVersion
   #define AppVersion "1.0.0"
 #endif
 #ifndef SourceDir
-  #define SourceDir "..\App"
+  #define SourceDir "..\obj\Release\InstallerPayload"
 #endif
 
 [Setup]
@@ -19,7 +24,7 @@ DisableDirPage=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-OutputDir=..\dist
+OutputDir=..\bin\Release\Installer
 OutputBaseFilename=Beam-Setup-{#AppVersion}
 SetupIconFile=..\Assets\Beam.ico
 UninstallDisplayIcon={app}\Beam.exe
@@ -39,7 +44,8 @@ Name: "arabic"; MessagesFile: "compiler:Languages\Arabic.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-Source: "{#SourceDir}\Beam.exe"; DestDir: "{app}"; Flags: ignoreversion
+; Release publishes one exe; a Debug build publishes the app with its files, so take the whole folder
+Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\Beam"; Filename: "{app}\Beam.exe"
